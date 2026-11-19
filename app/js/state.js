@@ -3,7 +3,7 @@
 export const STORAGE_KEY = 'platinum-engine-gta6-v1';
 
 export function defaultState() {
-  return { earned: [], counters: {}, notes: {}, spoilers: true, theme: 'dark', filter: 'all', selected: 17 };
+  return { earned: [], counters: {}, notes: {}, spoilers: true, theme: 'dark', filter: 'all', selected: 17, sort: 'roadmap' };
 }
 
 export function loadState() {
@@ -20,7 +20,8 @@ export function loadState() {
       spoilers: parsed.spoilers !== false,
       theme: parsed.theme === 'light' ? 'light' : 'dark',
       filter: typeof parsed.filter === 'string' ? parsed.filter : 'all',
-      selected: typeof parsed.selected === 'number' ? parsed.selected : 17
+      selected: typeof parsed.selected === 'number' ? parsed.selected : 17,
+      sort: ['roadmap', 'name', 'grade', 'stage'].indexOf(parsed.sort) !== -1 ? parsed.sort : 'roadmap'
     };
   } catch (err) {
     return fallback;

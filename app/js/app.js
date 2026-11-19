@@ -1,8 +1,8 @@
 // Platinum Engine — boot: load the trophy data, render the tracker, wire the UI.
 // The only network call in the app is this one fetch of the local data file.
 import { loadState, saveState, isEarned, toggleEarned, getCounter, setCounter, getNote, setNote, exportProgress, downloadExport, importProgress } from './state.js';
-import { visibleTrophies, displayName, displayDescription, isSpoilerHidden, medalSvg, gradeLabel } from './filters.js';
-import { STAGES, stageTrophies, stageProgress, missableTrophies, totalProgress, nextUp, counterLabel } from './roadmap.js';
+import { visibleTrophies, displayName, displayDescription, isSpoilerHidden, trophySvg, maskedSvg, gradeLabel } from './filters.js';
+import { STAGES, stageTrophies, stageProgress, missableTrophies, totalProgress, nextUp, counterLabel, roadmapRows } from './roadmap.js';
 
 const params = new URLSearchParams(window.location.search);
 const state = loadState();
@@ -33,15 +33,100 @@ function renderProgress() {
     ' · Gold ' + g.gold.earned + '/' + g.gold.total +
     ' · Silver ' + g.silver.earned + '/' + g.silver.total +
     ' · Bronze ' + g.bronze.earned + '/' + g.bronze.total;
+  $('phaseStrip').textContent = [1, 2, 3, 4].map(function (s) {
+    const sp = stageProgress(trophies, s, state);
+    return 'Phase ' + s + ': ' + sp.earned + '/' + sp.total;
+  }).join(' · ');
+}
+
+function statBarRow(label, earned, total, fillClass) {
+  const row = document.createElement('div');
+  row.className = 'stat-row';
+  const lab = document.createElement('span');
+  lab.className = 'stat-label';
+  lab.textContent = label;
+  row.appendChild(lab);
+  const bar = document.createElement('div');
+  bar.className = 'bar mini';
+  const fill = document.createElement('div');
+  fill.className = 'bar-fill ' + fillClass;
+  fill.style.width = (total ? Math.round((earned / total) * 100) : 0) + '%';
+  bar.appendChild(fill);
+  row.appendChild(bar);
+  const count = document.createElement('span');
+  count.className = 'stat-count';
+  count.textContent = earned + ' / ' + total;
+  row.appendChild(count);
+  return row;
+}
+
+// Stats dashboard: platinum ring, bars per grade and per category, and a
+// clearly labelled rough estimate of the hours left. The estimate scales
+// the verified ~200-hour platinum run by the share of trophies earned;
+// it is a rough estimate, not a measured time per trophy.
+function renderStats() {
+  const p = totalProgress(trophies, state);
+  const C = 2 * Math.PI * 52;
+  $('ringFill').style.strokeDasharray = ((p.pct / 100) * C).toFixed(1) + ' ' + C.toFixed(1);
+  $('ringCount').textContent = p.earned + ' / ' + p.total;
+  $('ringLabel').textContent = 'to Platinum';
+  const gradeBox = $('gradeBars');
+  clearChildren(gradeBox);
+  ['platinum', 'gold', 'silver', 'bronze'].forEach(function (g) {
+    gradeBox.appendChild(statBarRow(gradeLabel(g), p.byGrade[g].earned, p.byGrade[g].total, 'fill-' + g));
+  });
+  const catBox = $('categoryBars');
+  clearChildren(catBox);
+  [['story', 'Story'], ['collectibles', 'Collectibles'], ['activities', 'Activities']].forEach(function (pair) {
+    const total = trophies.filter(function (t) { return t.category === pair[0]; }).length;
+    const earned = trophies.filter(function (t) { return t.category === pair[0] && isEarned(state, t.id); }).length;
+    catBox.appendChild(statBarRow(pair[1], earned, total, 'fill-cat'));
+  });
+  const hours = Math.round(200 * (p.total - p.earned) / p.total);
+  $('hoursLeft').textContent = 'Estimated time left: ~' + hours + ' hours. Rough estimate — about 200 hours for the platinum in total, scaled by trophies earned.';
+}
+
+// Sort the tracker list: roadmap order (stage, then id), name A–Z, grade
+// (platinum first), or stage. The roadmap table keeps roadmap order.
+function sortVisible(list) {
+  const s = state.sort || 'roadmap';
+  const copy = list.slice();
+  if (s === 'name') {
+    copy.sort(function (a, b) { return a.name.localeCompare(b.name); });
+  } else if (s === 'grade') {
+    const order = { platinum: 0, gold: 1, silver: 2, bronze: 3 };
+    copy.sort(function (a, b) { return (order[a.grade] - order[b.grade]) || a.name.localeCompare(b.name); });
+  } else if (s === 'stage') {
+    copy.sort(function (a, b) { return (a.roadmapStage - b.roadmapStage) || (a.id - b.id); });
+  } else {
+    copy.sort(function (a, b) { return (a.roadmapStage - b.roadmapStage) || (a.id - b.id); });
+  }
+  return copy;
+}
+
+function renderNextUp() {
+  const next = nextUp(trophies, state);
+  $('nextUp').textContent = next
+    ? 'Next up: ' + displayName(next.trophy, state) + ' (Stage ' + next.stage + ')'
+    : 'All 55 trophies earned — platinum complete!';
 }
 
 function renderList() {
   const list = $('trophyList');
   clearChildren(list);
-  const visible = visibleTrophies(trophies, state.filter, query, state);
+  const visible = sortVisible(visibleTrophies(trophies, state.filter, query, state));
   $('listMeta').textContent = visible.length + ' of ' + trophies.length + ' trophies' +
     (state.filter !== 'all' ? ' · filter: ' + state.filter : '') +
     (query ? ' · search: "' + query + '"' : '');
+  if (visible.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'empty-state';
+    empty.textContent = state.filter === 'online'
+      ? 'No online trophies — all 55 are offline, single-player.'
+      : 'No trophies match this search or filter.';
+    list.appendChild(empty);
+    return;
+  }
   visible.forEach(function (t) {
     const li = document.createElement('li');
     const row = document.createElement('button');
@@ -61,7 +146,8 @@ function renderList() {
     row.appendChild(box);
 
     const medal = document.createElement('span');
-    medal.innerHTML = medalSvg(t.grade);
+    medal.className = 'row-icon';
+    medal.innerHTML = isSpoilerHidden(t, state) ? maskedSvg() : trophySvg(t.grade, t.category);
     row.appendChild(medal);
 
     const main = document.createElement('span');
@@ -122,7 +208,8 @@ function renderDetail() {
   const head = document.createElement('div');
   head.className = 'detail-head';
   const medal = document.createElement('span');
-  medal.innerHTML = medalSvg(t.grade);
+  medal.className = 'detail-icon';
+  medal.innerHTML = hidden ? maskedSvg() : trophySvg(t.grade, t.category);
   head.appendChild(medal);
   const headText = document.createElement('div');
   const name = document.createElement('h2');
@@ -161,7 +248,7 @@ function renderDetail() {
   if (hidden) {
     const note = document.createElement('p');
     note.className = 'hidden-note';
-    note.textContent = 'Spoilers are on and this trophy is still hidden. Earn it in-game (tick it off in the list) or turn spoilers off to read its guide and sources.';
+    note.textContent = 'Guide hidden while spoiler-free story is on. Earn it in-game (tick it off in the list) or turn spoilers off to read its guide and sources.';
     panel.appendChild(note);
     return;
   }
@@ -169,32 +256,44 @@ function renderDetail() {
   if (t.missable) {
     const banner = document.createElement('p');
     banner.className = 'missable-banner';
-    banner.textContent = 'Missable — finish this at the right story moment, or replay the mission. See the guide below.';
+    banner.textContent = 'Missable — this is the one trophy a playthrough can lose. See the guide below.';
     panel.appendChild(banner);
   }
 
-  const guideLabel = document.createElement('p');
-  guideLabel.className = 'detail-guide-label';
-  guideLabel.textContent = 'Guide';
-  panel.appendChild(guideLabel);
-  const guide = document.createElement('p');
-  guide.className = 'detail-guide';
-  guide.textContent = t.guide;
-  panel.appendChild(guide);
+  // The guide carries its own section labels: What to do / Where & how /
+  // Missable? / Roadmap / Sources. Split it so each section reads on its own.
+  const sections = guideSections(t.guide);
+  [['What to do', sections.what], ['Where & how', sections.where], ['Missable?', sections.missable], ['Roadmap', sections.roadmap]].forEach(function (pair) {
+    if (!pair[1]) return;
+    const label = document.createElement('p');
+    label.className = 'detail-guide-label';
+    label.textContent = pair[0];
+    panel.appendChild(label);
+    const body = document.createElement('p');
+    body.className = 'detail-guide';
+    body.textContent = pair[1];
+    panel.appendChild(body);
+  });
 
   const srcLabel = document.createElement('p');
   srcLabel.className = 'detail-sources-label';
-  srcLabel.textContent = 'Sources — open only when you follow them';
+  srcLabel.textContent = 'Sources — retrieved 19 November 2026; open only when you follow them';
   panel.appendChild(srcLabel);
-  const srcs = document.createElement('div');
+  const srcs = document.createElement('ol');
   srcs.className = 'detail-sources';
-  t.sources.forEach(function (s) {
+  t.sources.forEach(function (s, i) {
+    const li = document.createElement('li');
+    const tag = document.createElement('span');
+    tag.className = 'source-tag';
+    tag.textContent = '[S' + (i + 1) + '] ';
+    li.appendChild(tag);
     const a = document.createElement('a');
     a.href = s.url;
     a.target = '_blank';
     a.rel = 'noopener';
     a.textContent = s.name;
-    srcs.appendChild(a);
+    li.appendChild(a);
+    srcs.appendChild(li);
   });
   panel.appendChild(srcs);
 
@@ -233,6 +332,22 @@ function renderDetail() {
   panel.appendChild(noteWrap);
 }
 
+function guideSections(guide) {
+  function grab(start, end) {
+    const i = guide.indexOf(start);
+    if (i === -1) return '';
+    const from = i + start.length;
+    const j = end ? guide.indexOf(end, from) : guide.length;
+    return guide.slice(from, j === -1 ? guide.length : j).trim();
+  }
+  return {
+    what: grab('What to do:', 'Where & how:'),
+    where: grab('Where & how:', 'Missable?'),
+    missable: grab('Missable?', 'Roadmap:'),
+    roadmap: grab('Roadmap:', 'Sources:')
+  };
+}
+
 function renderRoadmap() {
   const box = $('roadmapContainer');
   clearChildren(box);
@@ -259,11 +374,17 @@ function renderRoadmap() {
     const ul = document.createElement('ul');
     ul.className = 'stage-list';
     const stageList = stageTrophies(trophies, stage.stage);
-    const shown = stageList.slice(0, 8);
+    // Four names keep the card a summary: the table below lists all 55,
+    // so the intro, the four cards and the table header fit one screen.
+    const shown = stageList.slice(0, 4);
     const rest = stageList.length - shown.length;
     shown.forEach(function (t) {
       const li = document.createElement('li');
       if (isEarned(state, t.id)) li.className = 'earned';
+      const ic = document.createElement('span');
+      ic.className = 'stage-icon';
+      ic.innerHTML = isSpoilerHidden(t, state) ? maskedSvg() : trophySvg(t.grade, t.category);
+      li.appendChild(ic);
       const nm = document.createElement('span');
       nm.textContent = (isEarned(state, t.id) ? '✓ ' : '○ ') + displayName(t, state);
       li.appendChild(nm);
@@ -283,6 +404,7 @@ function renderRoadmap() {
     card.appendChild(ul);
     box.appendChild(card);
   });
+  renderRoadmapTable();
   const next = nextUp(trophies, state);
   if (next) {
     const hint = document.createElement('p');
@@ -290,6 +412,30 @@ function renderRoadmap() {
     hint.textContent = 'Next up: ' + displayName(next.trophy, state) + ' (Stage ' + next.stage + ').';
     box.appendChild(hint);
   }
+}
+
+function renderRoadmapTable() {
+  const body = document.querySelector('#roadmapTable tbody');
+  if (!body) return;
+  clearChildren(body);
+  roadmapRows(trophies, state).forEach(function (row) {
+    const tr = document.createElement('tr');
+    if (isEarned(state, row.trophy.id)) tr.className = 'earned';
+    const name = document.createElement('td');
+    name.textContent = (isEarned(state, row.trophy.id) ? '✓ ' : '') + displayName(row.trophy, state);
+    tr.appendChild(name);
+    const miss = document.createElement('td');
+    miss.className = row.trophy.missable ? 'miss-yes' : '';
+    miss.textContent = row.missable;
+    tr.appendChild(miss);
+    const key = document.createElement('td');
+    key.textContent = isSpoilerHidden(row.trophy, state) ? 'Hidden — earn it to reveal' : row.key;
+    tr.appendChild(key);
+    const src = document.createElement('td');
+    src.textContent = row.source;
+    tr.appendChild(src);
+    body.appendChild(tr);
+  });
 }
 
 function renderMissables() {
@@ -322,7 +468,10 @@ function renderMissables() {
 
 function renderAll() {
   renderProgress();
+  renderStats();
+  renderNextUp();
   renderList();
+  renderCabinet();
   renderDetail();
   renderRoadmap();
   renderMissables();
@@ -332,7 +481,52 @@ function selectTrophy(id) {
   state.selected = id;
   saveState(state);
   renderList();
+  renderCabinet();
   renderDetail();
+}
+
+let trackerMode = 'list';
+
+function showTrackerMode(mode) {
+  trackerMode = mode;
+  $('trophyList').hidden = mode !== 'list';
+  $('cabinetGrid').hidden = mode !== 'cabinet';
+  $('listViewBtn').classList.toggle('active', mode === 'list');
+  $('cabinetViewBtn').classList.toggle('active', mode === 'cabinet');
+  if (mode === 'cabinet') renderCabinet();
+}
+
+// Cabinet: a gallery grid of the 3D trophy icons. Earned trophies show in
+// full colour, unearned ones are dimmed; clicking a tile opens its detail.
+function renderCabinet() {
+  const grid = $('cabinetGrid');
+  if (grid.hidden) return;
+  clearChildren(grid);
+  const visible = sortVisible(visibleTrophies(trophies, state.filter, query, state));
+  if (visible.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'empty-state';
+    empty.textContent = state.filter === 'online'
+      ? 'No online trophies — all 55 are offline, single-player.'
+      : 'No trophies match this search or filter.';
+    grid.appendChild(empty);
+    return;
+  }
+  visible.forEach(function (t) {
+    const tile = document.createElement('button');
+    tile.type = 'button';
+    tile.className = 'cabinet-tile' + (isEarned(state, t.id) ? ' earned' : ' unearned') + (state.selected === t.id ? ' selected' : '');
+    tile.addEventListener('click', function () { selectTrophy(t.id); });
+    const ic = document.createElement('span');
+    ic.className = 'cabinet-icon';
+    ic.innerHTML = isSpoilerHidden(t, state) ? maskedSvg() : trophySvg(t.grade, t.category);
+    tile.appendChild(ic);
+    const nm = document.createElement('span');
+    nm.className = 'cabinet-name';
+    nm.textContent = displayName(t, state);
+    tile.appendChild(nm);
+    grid.appendChild(tile);
+  });
 }
 
 function showView(view) {
@@ -372,6 +566,7 @@ async function boot() {
   if (params.get('spoilers') === 'off') state.spoilers = false;
 
   $('spoilerToggle').checked = state.spoilers;
+  $('sortSelect').value = state.sort || 'roadmap';
   document.querySelectorAll('.filter').forEach(function (b) {
     b.classList.toggle('active', b.dataset.filter === state.filter);
   });
@@ -380,12 +575,30 @@ async function boot() {
 
   const view = params.get('view');
   if (view === 'roadmap' || view === 'missables' || view === 'tracker') showView(view);
+  const scroll = params.get('scroll');
+  if (scroll === 'table') {
+    const tbl = document.querySelector('#roadmapTable');
+    if (tbl) tbl.scrollIntoView();
+  } else if (scroll !== null && Number.isFinite(Number(scroll))) {
+    // A small nudge for screenshots: keep the intro and the phase cards
+    // in view while bringing the table header up into the frame.
+    window.scrollTo(0, Number(scroll));
+  }
   if (params.get('export') === '1') openDataPanel();
 
   $('searchInput').addEventListener('input', function (ev) {
     query = ev.target.value;
     renderList();
+    renderCabinet();
   });
+  $('sortSelect').addEventListener('change', function (ev) {
+    state.sort = ev.target.value;
+    saveState(state);
+    renderList();
+    renderCabinet();
+  });
+  $('listViewBtn').addEventListener('click', function () { showTrackerMode('list'); });
+  $('cabinetViewBtn').addEventListener('click', function () { showTrackerMode('cabinet'); });
   document.querySelectorAll('.filter').forEach(function (b) {
     b.addEventListener('click', function () {
       state.filter = b.dataset.filter;
@@ -394,6 +607,7 @@ async function boot() {
         x.classList.toggle('active', x === b);
       });
       renderList();
+      renderCabinet();
     });
   });
   $('spoilerToggle').addEventListener('change', function (ev) {
