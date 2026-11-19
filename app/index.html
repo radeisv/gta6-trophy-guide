@@ -9,7 +9,7 @@
 <body>
 <header class="top">
   <div class="brand">
-    <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true"><path d="M14 6h20v6a10 10 0 0 1-20 0V6z"/><path d="M14 8H7a7 7 0 0 0 7 9M34 8h7a7 7 0 0 1-7 9"/><path d="M24 22v6M18 38h12M20 28h8l1 10H19l1-10z"/></svg>
+    <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="bg1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffffff"/><stop offset="0.35" stop-color="#dfe9f2"/><stop offset="0.55" stop-color="#9db1c4"/><stop offset="0.78" stop-color="#f2f7fb"/><stop offset="1" stop-color="#b7c8d8"/></linearGradient></defs><ellipse cx="32" cy="53" rx="19" ry="3.5" fill="#000" opacity="0.35"/><path d="M20 6h24v8a12 12 0 0 1-24 0z" fill="url(#bg1)"/><rect x="18" y="4" width="28" height="4" rx="2" fill="url(#bg1)"/><path d="M20 10C12 10 11 20 19 22M44 10c8 0 9 10 1 12" fill="none" stroke="url(#bg1)" stroke-width="3.5" stroke-linecap="round"/><path d="M29 24h6v12h-6z" fill="url(#bg1)"/><path d="M22 36h20l4 8H18z" fill="url(#bg1)"/><ellipse cx="27" cy="12" rx="5" ry="3" fill="#fff" opacity="0.5" transform="rotate(-20 27 12)"/></svg>
     <div>
       <h1>Platinum Engine</h1>
       <p class="subtitle">GTA 6 Trophy Guide &amp; Tracker — Grand Theft Auto VI · PlayStation 5</p>
@@ -25,16 +25,41 @@
   </div>
   <div class="bar" role="progressbar" aria-label="Progress to platinum"><div id="progressBar" class="bar-fill" style="width:0%"></div></div>
   <p id="gradeCounts" class="grade-counts">Platinum 0/1 · Gold 0/2 · Silver 0/6 · Bronze 0/46</p>
+  <p id="phaseStrip" class="phase-strip">Phase 1: 0/12 · Phase 2: 0/30 · Phase 3: 0/8 · Phase 4: 0/5</p>
+</section>
+
+<section class="stats" aria-label="Collection stats">
+  <div class="stats-ring">
+    <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
+      <circle class="ring-track" cx="60" cy="60" r="52"></circle>
+      <circle id="ringFill" class="ring-fill" cx="60" cy="60" r="52"></circle>
+    </svg>
+    <div class="ring-center"><span id="ringCount" class="ring-count">0 / 55</span><span id="ringLabel" class="ring-label">to Platinum</span></div>
+  </div>
+  <div class="stats-columns">
+    <div class="stats-col"><h3>By grade</h3><div id="gradeBars"></div></div>
+    <div class="stats-col"><h3>By category</h3><div id="categoryBars"></div></div>
+  </div>
+  <p id="hoursLeft" class="hours-left"></p>
 </section>
 
 <div class="toolbar">
-  <input id="searchInput" type="search" placeholder="Search trophies by name or description…" aria-label="Search trophies">
+  <input id="searchInput" type="search" placeholder="Search trophies by name" aria-label="Search trophies">
+  <label class="sort-label">Sort
+    <select id="sortSelect" aria-label="Sort trophies">
+      <option value="roadmap">Roadmap order</option>
+      <option value="name">Name A–Z</option>
+      <option value="grade">Grade</option>
+      <option value="stage">Stage</option>
+    </select>
+  </label>
   <div class="filters" role="group" aria-label="Filter by kind">
     <button type="button" data-filter="all" class="filter active">All</button>
     <button type="button" data-filter="story" class="filter">Story</button>
     <button type="button" data-filter="missable" class="filter">Missable</button>
     <button type="button" data-filter="collectibles" class="filter">Collectibles</button>
     <button type="button" data-filter="activities" class="filter">Activities</button>
+    <button type="button" data-filter="online" class="filter">Online</button>
     <button type="button" data-filter="earned" class="filter">Earned</button>
     <button type="button" data-filter="unearned" class="filter">Unearned</button>
   </div>
@@ -47,27 +72,40 @@
 <nav class="tabs" aria-label="Views">
   <button type="button" data-view="tracker" class="tab active">Tracker</button>
   <button type="button" data-view="roadmap" class="tab">Roadmap to Platinum</button>
-  <button type="button" data-view="missables" class="tab">Missables (18)</button>
+  <button type="button" data-view="missables" class="tab">Missable (1)</button>
 </nav>
 
 <main>
   <section id="view-tracker" class="view">
+    <p id="nextUp" class="next-up">Next up: —</p>
     <div class="master-detail">
       <div class="list-panel">
-        <p id="listMeta" class="list-meta">55 trophies</p>
+        <div class="list-head">
+          <p id="listMeta" class="list-meta">55 trophies</p>
+          <div class="view-toggle" role="group" aria-label="Tracker layout">
+            <button type="button" id="listViewBtn" class="view-btn active">List</button>
+            <button type="button" id="cabinetViewBtn" class="view-btn">Cabinet</button>
+          </div>
+        </div>
         <ul id="trophyList" class="trophy-list"></ul>
+        <div id="cabinetGrid" class="cabinet" hidden></div>
       </div>
       <article id="detailPanel" class="detail-panel" aria-live="polite"></article>
     </div>
   </section>
 
   <section id="view-roadmap" class="view" hidden>
-    <p class="section-intro">Four stages to the platinum, built from the official descriptions: story first, then the missable checkpoints, then collectibles and challenges, then cleanup. Earn a stage's trophies in order — the bars below track each stage.</p>
+    <p class="section-intro">The road to the platinum takes about 200 hours at difficulty 4/10, across a story of 5 chapters that runs 60–80 hours. One playthrough is enough: after the credits the game stays open in free-roam, and there is no mission replay — so keep a manual save at the start of every chapter and one before the final mission. Cheats disable trophies and saving, so leave them off for a trophy run. The 100% checklist opens after the story at Progress &gt; Stats &gt; 100% Completion; it is closer to 60% true completion, and only 70 of the 80 challenges are needed. Work the four phases in order — the table below lists all 55 trophies with their missable flag, key requirement and source.</p>
     <div id="roadmapContainer" class="roadmap"></div>
+    <h3 class="table-title">All 55 trophies — roadmap table</h3>
+    <div class="table-wrap"><table id="roadmapTable" class="roadmap-table">
+      <thead><tr><th>Trophy</th><th>Missable?</th><th>Key requirement</th><th>Source</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
   </section>
 
   <section id="view-missables" class="view" hidden>
-    <p class="section-intro warn">18 missable trophies. Each one is tied to a story chapter, a named mission, a stranger strand finale, or a story choice. Finish it at the right moment — or replay the mission — or it waits for a new playthrough.</p>
+    <p class="section-intro warn">One missable trophy — Positive Mental Attitude. The first meditation spot sits at Jason's home in Chapter 1 and is gone for good once that chapter closes, and there is no mission replay. Meditate there before Chapter 1 ends, and keep a manual save at the start of every chapter and one before the final mission. Cheats disable trophies and saving, so leave them off for a trophy run.</p>
     <div id="missablesContainer" class="missables"></div>
   </section>
 </main>
@@ -93,8 +131,8 @@
 </div>
 
 <footer>
-  <p><strong>Sources:</strong> Exophase — Grand Theft Auto VI Trophies (PS5) · PSNProfiles — Grand Theft Auto VI Trophies. Every trophy's guide names its sources beside the guide; links open only when you follow them.</p>
-  <p><strong>Honest guides:</strong> built from the official descriptions. Where a description names no location, the guide says so plainly instead of inventing one — those spots are marked unverified until confirmed in-game.</p>
+  <p><strong>Sources:</strong> [S1] PowerPyx — GTA 6 Trophy Guide &amp; Roadmap · [S2] Exophase + PSNProfiles — GTA VI trophy lists · [S3] GTABase — GTA 6 achievements &amp; trophies list · [S4] planetgta6 — hidden/visible cross-check. Sources retrieved 19 November 2026. Every trophy's guide names its sources beside the guide; links open only when you follow them.</p>
+  <p><strong>Honest guides:</strong> built from the official descriptions and the sources above. Where a description names no location, the guide says so plainly instead of inventing one — those spots are marked unverified until confirmed in-game, and five trophies are marked "not yet known" by PowerPyx.</p>
   <p>Offline: this guide runs entirely from its own files, with no network requests. No Rockstar logo or official artwork — all icons are original vector drawings.</p>
 </footer>
 
