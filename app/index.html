@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Platinum Engine — GTA 6 Trophy Guide &amp; Tracker</title>
+<link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true"><path d="M14 6h20v6a10 10 0 0 1-20 0V6z"/><path d="M14 8H7a7 7 0 0 0 7 9M34 8h7a7 7 0 0 1-7 9"/><path d="M24 22v6M18 38h12M20 28h8l1 10H19l1-10z"/></svg>
+    <div>
+      <h1>Platinum Engine</h1>
+      <p class="subtitle">GTA 6 Trophy Guide &amp; Tracker — Grand Theft Auto VI · PlayStation 5</p>
+    </div>
+  </div>
+  <p class="official">55 trophies · 1 Platinum · 2 Gold · 6 Silver · 46 Bronze · 28 Hidden · No online trophies</p>
+</header>
+
+<section class="progress" aria-label="Platinum progress">
+  <div class="progress-big">
+    <span id="progressText" class="progress-count">0 / 55 earned</span>
+    <span id="progressPct" class="progress-pct">0% to Platinum</span>
+  </div>
+  <div class="bar" role="progressbar" aria-label="Progress to platinum"><div id="progressBar" class="bar-fill" style="width:0%"></div></div>
+  <p id="gradeCounts" class="grade-counts">Platinum 0/1 · Gold 0/2 · Silver 0/6 · Bronze 0/46</p>
+</section>
+
+<div class="toolbar">
+  <input id="searchInput" type="search" placeholder="Search trophies by name or description…" aria-label="Search trophies">
+  <div class="filters" role="group" aria-label="Filter by kind">
+    <button type="button" data-filter="all" class="filter active">All</button>
+    <button type="button" data-filter="story" class="filter">Story</button>
+    <button type="button" data-filter="missable" class="filter">Missable</button>
+    <button type="button" data-filter="collectibles" class="filter">Collectibles</button>
+    <button type="button" data-filter="activities" class="filter">Activities</button>
+    <button type="button" data-filter="earned" class="filter">Earned</button>
+    <button type="button" data-filter="unearned" class="filter">Unearned</button>
+  </div>
+  <label class="toggle"><input id="spoilerToggle" type="checkbox" checked> Hide spoilers</label>
+  <button id="themeToggle" type="button" class="btn">Light theme</button>
+  <button id="exportBtn" type="button" class="btn">Export</button>
+  <label class="btn import-btn">Import<input id="importInput" type="file" accept="application/json"></label>
+</div>
+
+<nav class="tabs" aria-label="Views">
+  <button type="button" data-view="tracker" class="tab active">Tracker</button>
+  <button type="button" data-view="roadmap" class="tab">Roadmap to Platinum</button>
+  <button type="button" data-view="missables" class="tab">Missables (18)</button>
+</nav>
+
+<main>
+  <section id="view-tracker" class="view">
+    <div class="master-detail">
+      <div class="list-panel">
+        <p id="listMeta" class="list-meta">55 trophies</p>
+        <ul id="trophyList" class="trophy-list"></ul>
+      </div>
+      <article id="detailPanel" class="detail-panel" aria-live="polite"></article>
+    </div>
+  </section>
+
+  <section id="view-roadmap" class="view" hidden>
+    <p class="section-intro">Four stages to the platinum, built from the official descriptions: story first, then the missable checkpoints, then collectibles and challenges, then cleanup. Earn a stage's trophies in order — the bars below track each stage.</p>
+    <div id="roadmapContainer" class="roadmap"></div>
+  </section>
+
+  <section id="view-missables" class="view" hidden>
+    <p class="section-intro warn">18 missable trophies. Each one is tied to a story chapter, a named mission, a stranger strand finale, or a story choice. Finish it at the right moment — or replay the mission — or it waits for a new playthrough.</p>
+    <div id="missablesContainer" class="missables"></div>
+  </section>
+</main>
+
+<div id="dataPanel" class="data-panel" hidden>
+  <div class="data-box">
+    <h2>Export &amp; Import progress</h2>
+    <p>Your progress lives in this browser (localStorage). Export saves it as a JSON file; import loads a file you exported back.</p>
+    <label for="exportText">Exported progress</label>
+    <textarea id="exportText" rows="6" readonly></textarea>
+    <div class="data-actions">
+      <button id="downloadBtn" type="button" class="btn">Download JSON</button>
+      <button id="copyBtn" type="button" class="btn">Copy</button>
+    </div>
+    <label for="importText">Import progress (paste exported JSON)</label>
+    <textarea id="importText" rows="4" placeholder="Paste exported JSON here…"></textarea>
+    <div class="data-actions">
+      <button id="applyImportBtn" type="button" class="btn primary">Apply import</button>
+      <button id="closeDataBtn" type="button" class="btn">Close</button>
+    </div>
+    <p id="importMsg" class="import-msg"></p>
+  </div>
+</div>
+
+<footer>
+  <p><strong>Sources:</strong> Exophase — Grand Theft Auto VI Trophies (PS5) · PSNProfiles — Grand Theft Auto VI Trophies. Every trophy's guide names its sources beside the guide; links open only when you follow them.</p>
+  <p><strong>Honest guides:</strong> built from the official descriptions. Where a description names no location, the guide says so plainly instead of inventing one — those spots are marked unverified until confirmed in-game.</p>
+  <p>Offline: this guide runs entirely from its own files, with no network requests. No Rockstar logo or official artwork — all icons are original vector drawings.</p>
+</footer>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
