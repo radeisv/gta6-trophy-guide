@@ -12,7 +12,7 @@ Platinum Engine — an offline guide and tracker for all 55 Grand Theft Auto VI 
 node serve.ts
 ```
 
-Then open http://localhost:8080. The guide runs entirely from its own files, with no network requests — every guide is built from the official trophy descriptions and cites Exophase and PSNProfiles.
+Then open http://localhost:8080. The guide runs entirely from its own files, with no network requests — every guide is built from the official trophy descriptions and cites PowerPyx, Exophase, PSNProfiles, GTABase and planetgta6 (sources retrieved 19 November 2026).
 
 ## Hand it in
 

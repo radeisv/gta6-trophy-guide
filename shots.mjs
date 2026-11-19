@@ -38,6 +38,8 @@ function resolvePlaywright() {
   }
 }
 
+const PORT = process.env.SHOT_PORT || '8080';
+
 function waitForServer(url, tries = 40) {
   return new Promise((resolve, reject) => {
     const attempt = (left) => {
@@ -71,14 +73,14 @@ async function takeShot(browser, base, shot) {
   return statSync(out).size;
 }
 
-const server = spawn(process.execPath, [join(here, 'serve.ts'), '--port', '8080'], { cwd: here, stdio: 'ignore' });
+const server = spawn(process.execPath, [join(here, 'serve.ts'), '--port', PORT], { cwd: here, stdio: 'ignore' });
 try {
-  await waitForServer('http://localhost:8080/');
+  await waitForServer('http://localhost:' + PORT + '/');
   const { chromium } = resolvePlaywright();
   const browser = await chromium.launch();
   try {
     for (const shot of shots) {
-      await takeShot(browser, 'http://localhost:8080', shot);
+      await takeShot(browser, 'http://localhost:' + PORT, shot);
     }
   } finally {
     await browser.close();
